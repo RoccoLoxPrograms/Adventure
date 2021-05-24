@@ -39,6 +39,7 @@ converts:
       - WhiteKey.png
       - Sword.png
       - Magnet.png
+      - MagicBridge.png
 
 outputs:
   - type: c
