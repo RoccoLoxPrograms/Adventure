@@ -12,7 +12,6 @@ int8_t playerHeldObject = 9;
 int8_t castleGatePos[3] = {24, 24, 24};
 int16_t objectPos[] = {5, 56, 128, 13, 56, 128, 21, 56, 128, 23, 220, 160, 12, 100, 140, 26, 128, 104, 1, 96, 170, 2, 160, 200};
 
-void dropObject(int8_t);
 void key(int8_t);
 void magnet(int8_t);
 void drawRoom(int8_t, uint8_t);
@@ -67,15 +66,15 @@ const int8_t roomTransitions[124] = {
     3, 0, 1, 0, // room 2
     0, 1, 2, 4, // room 3
     5, 3, 5, 5, // room 4
-    5, 4, 5, 6, // room 5
+    5, 11, 5, 6, // room 5
     9, 5, 10, 7, // room 6
     8, 6, 8, 10, // room 7
     7, 9, 7, 11, // room 8
     10, 29, 6, 8, // room 9
     6, 7, 9, 15, // room 10
-    14, 8, 15, 21, // room 11
+    14, 8, 15, 5, // room 11
     14, 12, 14, 13, // room 12
-    13, 12, 13, 14, // room 13
+    13, 14, 13, 14, // room 13
     15, 13, 11, 13, // room 14
     16, 10, 14, 24, // room 15
     11, 30, 15, 10, // room 16
@@ -83,7 +82,7 @@ const int8_t roomTransitions[124] = {
     17, 23, 17, 20, // room 18
     20, 17, 20, 17, // room 19
     19, 18, 19, 21, // room 20
-    21, 20, 21, 22, // room 21
+    21, 23, 21, 22, // room 21
     26, 21, 28, 23, // room 22
     22, 22, 27, 21, // room 23
     25, 15, 25, 25, // room 24
@@ -120,22 +119,18 @@ int main(void) {
         if (!manX && kb_Data[7] & kb_Left) {
             currentRoom = roomTransitions[4 * currentRoom + 2];
             manX = 312;
-            objectPos[3 * playerHeldObject + 1] += 312;
         } else if (manX == 312 && kb_Data[7] & kb_Right) {
             currentRoom = roomTransitions[4 * currentRoom];
             manX = 0;
-            objectPos[3 * playerHeldObject + 1] -= 312;
         } else if (manY == 24 && kb_Data[7] & kb_Up) {
             currentRoom = roomTransitions[4 * currentRoom + 1];
             manY = 208;
-            objectPos[3 * playerHeldObject + 2] += 184;
         } else if (manY == 208 && kb_Data[7] & kb_Down) {
             currentRoom = roomTransitions[4 * currentRoom + 3];
             manY = 24;
-            objectPos[3 * playerHeldObject + 2] -= 184;
         }
         // lets go of the item being held if [2nd] is pressed
-        if (kb_Data[1] & kb_2nd) dropObject(currentRoom);
+        if (kb_Data[1] & kb_2nd) playerHeldObject = 8;
         // checks to see if the player is in a foggy orange maze
         if (currentRoom < 4 || (currentRoom > 23 && currentRoom < 27)) inOrangeMaze = true;
         else inOrangeMaze = false;
@@ -149,14 +144,14 @@ int main(void) {
                 currentRoom--;
                 manY = 204;
                 objectPos[3 * playerHeldObject + 2] += 60;
+                objectPos[3 * playerHeldObject] = currentRoom;
                 castleGatePos[(currentRoom - 3) / 8] = 0;
                 castleGateOpener = 0;
-                if (currentRoom == 12 && playerHeldObject == 6) win = true;
             }
             // draw the castle gate at its position (whether open or closed)
             else gfx_ScaledSprite_NoClip(CastleGate, 153, 112 + castleGatePos[(currentRoom - 5) / 8], 2, 2);
             // if the man comes into the castle room, teleport them to the entrance of the castle instead of the top of the screen
-            if (manY == 24) {
+            if (manY == 24 && manX >= 128 && manX <= 184) {
                 manY = 148;
                 objectPos[3 * playerHeldObject + 2] += 124;
                 objectPos[3 * playerHeldObject + 1] += 156 - manX;
@@ -164,7 +159,7 @@ int main(void) {
             }
             // if the key touches the gate that it's supposed to unlock, then it sets the castleGateOpener variable
             for (int8_t i = 0; i < 3; i++) {
-                if (!castleGateOpener && gfx_CheckRectangleHotspot(objectPos[1 + 3 * i], objectPos[2 + 3 * i], 16, 6, 153, 140 + castleGatePos[i], 14, 4)) {
+                if (objectPos[3 * i] == currentRoom && currentRoom == 8 * i + 5 && !castleGateOpener && gfx_CheckRectangleHotspot(objectPos[1 + 3 * i], objectPos[2 + 3 * i], 16, 6, 153, 140 + castleGatePos[i], 14, 4)) {
                     castleGateOpener = 2 * (!castleGatePos[i]) - 1;
                 }
             }
@@ -172,8 +167,6 @@ int main(void) {
         // opens/closes the castle gates if the castleGateOpener was set
         castleGatePos[(currentRoom - 3)  / 8] += castleGateOpener;
         if (castleGatePos[(currentRoom - 3) / 8] >= 24 || castleGatePos[(currentRoom - 3) / 8] <= 0) castleGateOpener = 0;
-        // the object's room number is set to the player's
-        objectPos[3 * playerHeldObject] = currentRoom;
         // redraw the room on top of everything
         drawRoom(currentRoom, roomColor[currentRoom]);
         // if the man is in the easter egg room, then display the easter egg room's text
@@ -239,32 +232,44 @@ int main(void) {
             gfx_Sprite_NoClip(FogBackground, (manX - 28) * (manX > 28 && manX < 284) + 256 * (manX >= 284), (manY - 52) * (manY > 52 && manY < 180) + 128 * (manY >= 180) + 24);
             */
         }
-        // checks all the objects to see if the player should pick one up
+        // checks all the objects to see if the player should pick one up or if the object needs to perform a room transition
         for (int8_t i = 0; i < 8; i++) {
+            uint8_t j = 3 * i;
             const int8_t objectSize[] = {20, 10, 20, 10, 20, 10, 20, 20, 20, 14, 20, 52, 20, 22, 6, 6};
-            if (!holdingCooldown && currentRoom == objectPos[3 * i]) {
-                while (gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[3 * i + 1] - 2, objectPos[3 * i + 2] - 2, objectSize[2 * i], objectSize[2 * i + 1]) || (i == 5 && gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[16] + 46, objectPos[17] - 2, 20, 52))) {
+            if (!holdingCooldown && currentRoom == objectPos[j]) {
+                if (gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[j + 1] - 2, objectPos[j + 2] - 2, objectSize[2 * i], objectSize[2 * i + 1]) || (i == 5 && gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[16] + 46, objectPos[17] - 2, 20, 52))) {
                     // if the man picked up a different item...
                     if (playerHeldObject != i) {
                         // the holding cooldown is set to 8 frames
                         holdingCooldown = 8;
-                        // the man drops the current item
-                        dropObject(currentRoom);
                         // the man picks up the corresponding object that it touched
                         playerHeldObject = i;
                     } else holdingCooldown = 0;
                     // that object is shifted to be outside the man. it goes to the right by default but in the other directions if the key is being pressed
-                    objectPos[3 * i + 1] += 4;
-                    if (kb_Data[7] & kb_Left) objectPos[3 * i + 1] -= 8;
-                    if (kb_Data[7] & kb_Up) {
-                        objectPos[3 * i + 2] -= 4;
-                        objectPos[3 * i + 1] -= 4;
-                    }
-                    if (kb_Data[7] & kb_Down) {
-                        objectPos[3 * i + 2] += 4;
-                        objectPos[3 * i + 1] -= 4;
-                    }
+                    if (kb_Data[7] & kb_Right) objectPos[j + 1] += 4;
+                    if (kb_Data[7] & kb_Left) objectPos[j + 1] -= 4;
+                    if (kb_Data[7] & kb_Up) objectPos[j + 2] -= 4;
+                    if (kb_Data[7] & kb_Down) objectPos[j + 2] += 4;
                 }
+            }
+            if (objectPos[j + 1] + ((objectSize[2 * i] - 4) / 2) < 4) {
+                objectPos[j] = roomTransitions[4 *objectPos[j] + 2];
+                objectPos[j + 1] += 312;
+            }
+            if (objectPos[j + 1] + ((objectSize[2 * i] - 4) / 2) > 316) {
+                objectPos[j] = roomTransitions[4 * objectPos[j]];
+                objectPos[j + 1] -= 312;
+            }
+            if (objectPos[j + 2] + ((objectSize[2 * i + 1] - 4) / 2) < 28) {
+                objectPos[j] = roomTransitions[4 * objectPos[j] + 1];
+                objectPos[j + 2] += 184; 
+            }
+            if (objectPos[j + 2] + ((objectSize[2 * i + 1] - 4) / 2) > 212) {
+                objectPos[j] = roomTransitions[4 * objectPos[j] + 3];
+                objectPos[j + 2] -= 184;
+            }
+            if (i != playerHeldObject && (objectPos[j] == 5 || objectPos[j] ==13 || objectPos[j] == 21) && objectPos[j + 2] < 40 && objectPos[j + 1] > 128 && objectPos[j + 1] < 192) {
+                objectPos[j + 2] = 156;
             }
         }
         // decrement the holding cooldown each frame
@@ -272,15 +277,19 @@ int main(void) {
         // do all the objects' routines
         key(currentRoom);
         magnet(currentRoom);
-        // draw the sword and the bridge and the golden chalice and the grey dot
+        // draw the sword and the bridge
         if (currentRoom == objectPos[12]) gfx_ScaledTransparentSprite_NoClip(Sword, objectPos[13], objectPos[14], 2, 2);
         if (currentRoom == objectPos[15]) gfx_ScaledTransparentSprite_NoClip(MagicBridge, objectPos[16], objectPos[17], 2, 2);
+        // draw the chalice with its flashing colors
         if (currentRoom == objectPos[18]) {
             fontlib_SetForegroundColor(chaliceColor);
             fontlib_SetCursorPosition(objectPos[19], objectPos[20]);
             fontlib_DrawGlyph(0);
         }
         chaliceColor++;
+        // if the chalice is in the room above the Golden Castle, then you win
+        if (objectPos[18] == 12) win = true;
+        // draw the grey dot
         if (currentRoom == objectPos[21]) {
             gfx_SetColor(0);
             gfx_FillRectangle_NoClip(objectPos[22], objectPos[23], 2, 2);
@@ -382,26 +391,4 @@ void magnet(int8_t currentRoom) {
             break;
         }
     }
-}
-
-// drops the held item and checks to see if it should room transition
-void dropObject(int8_t currentRoom) {
-    if (objectPos[3 * playerHeldObject + 1] <= -7) {
-        objectPos[3 * playerHeldObject] = roomTransitions[4 * currentRoom + 2];
-        objectPos[3 * playerHeldObject + 1] += 308;
-    }
-    if (objectPos[3 * playerHeldObject + 1] > 311) {
-        objectPos[3 * playerHeldObject] = roomTransitions[4 * currentRoom];
-        objectPos[3 * playerHeldObject + 1] -= 308;
-    }
-    if (objectPos[3 * playerHeldObject + 2] < 19) {
-        objectPos[3 * playerHeldObject] = roomTransitions[4 * currentRoom + 1];
-        objectPos[3 * playerHeldObject + 2] += 184;
-    }
-    if (objectPos[3 * playerHeldObject + 2] > 215) {
-        objectPos[3 * playerHeldObject] = roomTransitions[4 * currentRoom + 3];
-        objectPos[3 * playerHeldObject + 2] -= 184;
-    }
-    // reset the held item to nothing (9 in this case represents the "not object")
-    playerHeldObject = 8;
 }
