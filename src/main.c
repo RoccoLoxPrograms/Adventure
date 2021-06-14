@@ -8,9 +8,20 @@
 #include "font/font.h"
 #include "gfx/sprites.h"
 
-int8_t playerHeldObject = 9;
-int8_t castleGatePos[3] = {24, 24, 24};
-int16_t objectPos[] = {5, 56, 128, 13, 56, 128, 21, 56, 128, 23, 220, 160, 12, 100, 140, 26, 128, 104, 1, 96, 170, 2, 160, 200};
+int8_t playerHeldObject = 11;
+int16_t objectPos[] = {
+    5, 56, 128, // Black key
+    13, 56, 128, // Goldeny key
+    21, 56, 128, // Whitish key
+    23, 220, 160, // Magneto
+    12, 100, 140, // Sword (or arrow or whatever you see it as)
+    26, 128, 104, // Magick bridge
+    1, 96, 170, // Chalice
+    2, 160, 200, // Grey dot
+    15, 160, 120, // Grundle (the green dragon)
+    14, 110, 120, // Yurgle (the yeller dragon)
+    14, 60, 120 // Rhindle (the red dragon)
+};
 
 void key(int8_t);
 void magnet(int8_t);
@@ -103,16 +114,31 @@ int main(void) {
     rtc_Enable(RTC_SEC_INT);
     srand(rtc_Time());
     gfx_FillScreen(2);
-    gfx_SetDrawBuffer();
-    gfx_FillScreen(2);
     gfx_SetPalette(global_palette, sizeof_global_palette, 0);
     gfx_SetTransparentColor(0);
     // mm mm mm delicious variables
-    int8_t currentRoom = 13, castleGateOpener = 0, holdingCooldown = 0;
+    int8_t currentRoom = 13, castleGateOpener = 0, holdingCooldown = 0, castleGatePos[3] = {24, 24, 24}, dragonStates[3] = {0, 0, 0};
     int16_t manX = 156;
     uint8_t manY = 176, chaliceColor = 0;
-    bool inOrangeMaze, win = false;
-    while (!(kb_Data[1] & kb_Del || win) ) {
+    bool inOrangeMaze, win = false, dead = false;
+    // display the epic title screen that was created by TIny_Hacker
+    gfx_SetColor(0);
+    gfx_FillRectangle_NoClip(0, 24, 320, 192);
+    drawRoom(14, 9);
+    gfx_ScaledTransparentSprite_NoClip(AdventureTitle, 2, 40, 2, 2);
+    fontlib_SetCursorPosition(37, 201);
+    fontlib_DrawString("(Re)made by RoccoLox Programs");
+    fontlib_SetForegroundColor(2);
+    fontlib_SetCursorPosition(101, 128);
+    fontlib_DrawString("Press any key...");
+    gfx_SetDrawBuffer();
+    gfx_FillScreen(2);
+    // wait for a button to be pressed before moving on to the actual game
+    do { 
+        kb_Scan();
+    } while (kb_AnyKey());
+    while (!kb_AnyKey()) kb_Scan();
+    while (!(kb_Data[1] & kb_Del || win || dead)) {
         timer_Set(1, 0);
         kb_Scan();
         // check for and execute any room transitions
@@ -130,7 +156,7 @@ int main(void) {
             manY = 24;
         }
         // lets go of the item being held if [2nd] is pressed
-        if (kb_Data[1] & kb_2nd) playerHeldObject = 8;
+        if (kb_Data[1] & kb_2nd) playerHeldObject = 12;
         // checks to see if the player is in a foggy orange maze
         if (currentRoom < 4 || (currentRoom > 23 && currentRoom < 27)) inOrangeMaze = true;
         else inOrangeMaze = false;
@@ -139,17 +165,6 @@ int main(void) {
         gfx_FillRectangle_NoClip(0, 24, 320, 192);
         // if the man is in a castle room, then...
         if (currentRoom == 5 || currentRoom == 13 || currentRoom == 21){
-            // do a room transition when they enter the castle instead of when you hit the top of the screen
-            if (castleGatePos[(currentRoom - 5) / 8] != 24 && manX > 145 && manX < 167 && manY == 144) {
-                currentRoom--;
-                manY = 204;
-                objectPos[3 * playerHeldObject + 2] += 60;
-                objectPos[3 * playerHeldObject] = currentRoom;
-                castleGatePos[(currentRoom - 3) / 8] = 0;
-                castleGateOpener = 0;
-            }
-            // draw the castle gate at its position (whether open or closed)
-            else gfx_ScaledSprite_NoClip(CastleGate, 153, 112 + castleGatePos[(currentRoom - 5) / 8], 2, 2);
             // if the man comes into the castle room, teleport them to the entrance of the castle instead of the top of the screen
             if (manY == 24 && manX >= 128 && manX <= 184) {
                 manY = 148;
@@ -163,6 +178,17 @@ int main(void) {
                     castleGateOpener = 2 * (!castleGatePos[i]) - 1;
                 }
             }
+            // do a room transition when they enter the castle instead of when you hit the top of the screen
+            if (castleGatePos[(currentRoom - 5) / 8] != 24 && manX > 145 && manX < 167 && manY == 144) {
+                currentRoom--;
+                manY = 204;
+                objectPos[3 * playerHeldObject + 2] += 60;
+                objectPos[3 * playerHeldObject] = currentRoom;
+                castleGatePos[(currentRoom - 3) / 8] = 0;
+                castleGateOpener = 0;
+            }
+            // draw the castle gate at its position (whether open or closed)
+            else gfx_ScaledSprite_NoClip(CastleGate, 153, 112 + castleGatePos[(currentRoom - 5) / 8], 2, 2);
         }
         // opens/closes the castle gates if the castleGateOpener was set
         castleGatePos[(currentRoom - 3)  / 8] += castleGateOpener;
@@ -171,13 +197,35 @@ int main(void) {
         drawRoom(currentRoom, roomColor[currentRoom]);
         // if the man is in the easter egg room, then display the easter egg room's text
         if (currentRoom == 16) {
-            //"Created Warren.... by....i..Robbinett";
+            // "Created Warren.... by....i..Robbinett";
             const uint8_t easteRegg[36] = {67, 114, 101, 97, 116, 101, 100, 32, 87, 97, 114, 114, 101, 110, 46, 46, 46, 32, 98, 121, 46, 46, 46, 46, 105, 46, 46, 82, 111, 98, 105, 110, 101, 116, 116};
             for (int8_t i = 0; i < 35; i++) {
                 fontlib_SetForegroundColor(chaliceColor);
                 fontlib_SetCursorPosition(152 + 10 * (i > 16), 24 + 11 * i - 197 * (i > 16));
                 fontlib_DrawGlyph(easteRegg[i]);
             }
+        }
+        if (!dragonStates[0]) {
+            if (objectPos[24] == currentRoom) {
+                objectPos[25] += 2 * ((objectPos[25] < manX) - (objectPos[25] > manX));
+                objectPos[26] += 2 * ((objectPos[26] < manY) - (objectPos[26] > manY));
+            } else if (objectPos[24] == objectPos[0]) {
+                objectPos[25] += 2 * ((objectPos[25] < objectPos[1]) - (objectPos[25] > objectPos[1]));
+                objectPos[26] += 2 * ((objectPos[26] < objectPos[2]) - (objectPos[26] > objectPos[2]));
+            } else if (objectPos[24] == objectPos[9]) {
+                objectPos[25] += 2 * ((objectPos[25] < objectPos[10]) - (objectPos[25] > objectPos[10]));
+                objectPos[26] += 2 * ((objectPos[26] < objectPos[11]) - (objectPos[26] > objectPos[11]));
+            } else if (objectPos[24] == objectPos[15]) {
+                objectPos[25] += 2 * ((objectPos[25] < objectPos[16]) - (objectPos[25] > objectPos[16]));
+                objectPos[26] += 2 * ((objectPos[26] < objectPos[17]) - (objectPos[26] > objectPos[17]));
+            } else {
+
+            }
+        }
+        if (objectPos[24] == currentRoom) {
+            if (!dragonStates[0] || dragonStates[0] == 126) gfx_ScaledTransparentSprite_NoClip(GrindleChase, objectPos[25], objectPos[26], 2, 2);
+            else if (dragonStates[0] == 127) gfx_ScaledTransparentSprite_NoClip(GrindleDead, objectPos[25], objectPos[26], 2, 2);
+            else gfx_ScaledTransparentSprite_NoClip(GrindleEat, objectPos[25], objectPos[26], 2, 2);
         }
         // check for collisions then move the man and the item being held
         if (kb_Data[7] & kb_Right) {
@@ -233,23 +281,42 @@ int main(void) {
             */
         }
         // checks all the objects to see if the player should pick one up or if the object needs to perform a room transition
-        for (int8_t i = 0; i < 8; i++) {
+        for (int8_t i = 0; i < 11; i++) {
             uint8_t j = 3 * i;
-            const int8_t objectSize[] = {20, 10, 20, 10, 20, 10, 20, 20, 20, 14, 20, 52, 20, 22, 6, 6};
+            const int8_t objectSize[] = {20, 10, 20, 10, 20, 10, 20, 20, 20, 14, 20, 52, 20, 22, 6, 6, 20, 48, 20, 48, 20, 48};
             if (!holdingCooldown && currentRoom == objectPos[j]) {
                 if (gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[j + 1] - 2, objectPos[j + 2] - 2, objectSize[2 * i], objectSize[2 * i + 1]) || (i == 5 && gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[16] + 46, objectPos[17] - 2, 20, 52))) {
-                    // if the man picked up a different item...
-                    if (playerHeldObject != i) {
-                        // the holding cooldown is set to 8 frames
-                        holdingCooldown = 8;
-                        // the man picks up the corresponding object that it touched
-                        playerHeldObject = i;
-                    } else holdingCooldown = 0;
-                    // that object is shifted to be outside the man. it goes to the right by default but in the other directions if the key is being pressed
-                    if (kb_Data[7] & kb_Right) objectPos[j + 1] += 4;
-                    if (kb_Data[7] & kb_Left) objectPos[j + 1] -= 4;
-                    if (kb_Data[7] & kb_Up) objectPos[j + 2] -= 4;
-                    if (kb_Data[7] & kb_Down) objectPos[j + 2] += 4;
+                    if (i < 8) {
+                        // if the man picked up a different item...
+                        if (playerHeldObject != i) {
+                            // the holding cooldown is set to 8 frames
+                            holdingCooldown = 8;
+                            // the man picks up the corresponding object that it touched
+                            playerHeldObject = i;
+                        } else holdingCooldown = 0;
+                        // that object is shifted to be outside the man. it goes to the right by default but in the other directions if the key is being pressed
+                        if (kb_Data[7] & kb_Right) objectPos[j + 1] += 4;
+                        if (kb_Data[7] & kb_Left) objectPos[j + 1] -= 4;
+                        if (kb_Data[7] & kb_Up) objectPos[j + 2] -= 4;
+                        if (kb_Data[7] & kb_Down) objectPos[j + 2] += 4;
+                    } else if (!dragonStates[i - 8]) {
+                        dragonStates[i - 8] = 30;
+                        objectPos[j + 1] = manX + 2;
+                        objectPos[j + 2] = manY - 4;
+                    } else if (dragonStates[i - 8] < 126) {
+                        dragonStates[i - 8]--;
+                        if (dragonStates[i - 8] == 1) {
+                            if (gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[j + 1], objectPos[j + 2] + 2, 8, 20)) {
+                                /*gfx_SetColor(0);
+                                gfx_FillRectangle_NoClip(manX, manY, 8, 8);
+                                gfx_FillColor(roomColor[currentRoom]);
+                                while (!(kb_Data[1] & kb_Del || kb_Data[1] & kb_Mode)) kb_Scan();*/
+                                manX = objectPos[j + 1] + 4;
+                                manY = objectPos[j + 2] + 24;
+                                dragonStates[i - 8] = 126;
+                            } else {dragonStates[i - 8] = 0;}
+                        }
+                    }
                 }
             }
             if (objectPos[j + 1] + ((objectSize[2 * i] - 4) / 2) < 4) {

@@ -25,6 +25,7 @@ extern "C" {
 #include "Sword.h"
 #include "Magnet.h"
 #include "MagicBridge.h"
+#include "AdventureTitle.h"
 
 #ifdef __cplusplus
 }
