@@ -6,10 +6,10 @@ extern "C" {
 #endif
 
 #define RhindleDead_width 8
-#define RhindleDead_height 22
-#define RhindleDead_size 178
+#define RhindleDead_height 17
+#define RhindleDead_size 138
 #define RhindleDead ((gfx_sprite_t*)RhindleDead_data)
-extern unsigned char RhindleDead_data[178];
+extern unsigned char RhindleDead_data[138];
 
 #ifdef __cplusplus
 }

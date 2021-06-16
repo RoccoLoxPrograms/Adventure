@@ -6,10 +6,10 @@ extern "C" {
 #endif
 
 #define YurgleChase_width 8
-#define YurgleChase_height 22
-#define YurgleChase_size 178
+#define YurgleChase_height 20
+#define YurgleChase_size 162
 #define YurgleChase ((gfx_sprite_t*)YurgleChase_data)
-extern unsigned char YurgleChase_data[178];
+extern unsigned char YurgleChase_data[162];
 
 #ifdef __cplusplus
 }
