@@ -23,7 +23,6 @@ int16_t objectPos[] = {
     1, 60, 120 // 10: Rhindle (the red dragon)
 };
 
-void key(int8_t);
 void magnet(int8_t);
 void drawRoom(int8_t, uint8_t);
 /* There are 30 rooms in Adventure. Their "room numbers" are as such:
@@ -104,6 +103,7 @@ const int8_t roomTransitions[124] = {
     23, 28, 23, 27, // room 29
     30, 30, 30, 16 // room 30
 };
+const int8_t objectSize[] = {20, 10, 20, 10, 20, 10, 20, 20, 20, 14, 20, 52, 20, 22, 6, 6, 20, 40, 20, 40, 20, 40};
 
 int main(void) {
     // all that setup stuff
@@ -155,7 +155,7 @@ int main(void) {
             currentRoom = roomTransitions[4 * currentRoom + 3];
             manY = 24;
         }
-        // if mode is pressed, then resurrect the dragons and reset the player back to the golden castle
+        // if mode is pressed, then resurrect the dragons, reset the player back to the golden castle, and make the player let go of whatever item they were carrying
         if (kb_Data[1] & kb_Mode) {
             dragonStates[0] = 0;
             dragonStates[1] = 0;
@@ -163,6 +163,7 @@ int main(void) {
             manX = 156;
             manY = 176;
             currentRoom = 13;
+            playerHeldObject = 12;
         }
         // lets go of the item being held if [2nd] is pressed
         if (kb_Data[1] & kb_2nd) playerHeldObject = 12;
@@ -192,6 +193,10 @@ int main(void) {
                 manY = 204;
                 castleGatePos[(currentRoom - 3) / 8] = 0;
                 castleGateOpener = 0;
+                if (objectPos[3 * playerHeldObject + 2] + (objectSize[2 * playerHeldObject + 1] / 2 - 2) < 153 && objectPos[3 * playerHeldObject + 2] + (objectSize[2 * playerHeldObject + 1] / 2 - 2) > 60) {
+                    objectPos[3 * playerHeldObject + 2] += 60;
+                    objectPos[3 * playerHeldObject]--;
+                }
                 if (playerHeldObject == 6 && currentRoom == 12) win = true;
             }
             // draw the castle gate at its position (whether open or closed)
@@ -208,7 +213,7 @@ int main(void) {
             const uint8_t easteRegg[36] = {67, 114, 101, 97, 116, 101, 100, 32, 87, 97, 114, 114, 101, 110, 46, 46, 46, 32, 98, 121, 46, 46, 46, 46, 105, 46, 46, 82, 111, 98, 105, 110, 101, 116, 116};
             for (int8_t i = 0; i < 35; i++) {
                 fontlib_SetForegroundColor(chaliceColor);
-                fontlib_SetCursorPosition(152 + 10 * (i > 16), 24 + 11 * i - 197 * (i > 16));
+                fontlib_SetCursorPosition(151 + 12 * (i > 16), 24 + 11 * i - 197 * (i > 16));
                 fontlib_DrawGlyph(easteRegg[i]);
             }
         }
@@ -221,7 +226,7 @@ int main(void) {
             }
             // if the player is in the same room, chase the player
             if (objectPos[24] == currentRoom) {
-                dragonDirections[0] = (objectPos[25] < manX) - (objectPos[25] > manX);
+                dragonDirections[0] = (objectPos[25] < manX - 4) - (objectPos[25] > manX - 4);
                 dragonDirections[1] = (objectPos[26] < manY - 4) - (objectPos[26] > manY - 4);
             // if the chalice is in the same room, chase the chalice
             } else if (objectPos[24] == objectPos[18]) {
@@ -261,7 +266,7 @@ int main(void) {
                 dragonDirections[3] = (objectPos[29] > objectPos[5]) - (objectPos[29] < objectPos[5]);
             // if the man is in the same room, chase the man
             } else if (objectPos[27] == currentRoom) {
-                dragonDirections[2] = (objectPos[28] < manX) - (objectPos[28] > manX);
+                dragonDirections[2] = (objectPos[28] < manX - 4) - (objectPos[28] > manX - 4);
                 dragonDirections[3] = (objectPos[29] < manY - 4) - (objectPos[29] > manY - 4);
             // if the chalice is in the same room, chase the chalice
             } else if (objectPos[27] == objectPos[18]) {
@@ -280,7 +285,7 @@ int main(void) {
         if (!dragonStates[2]) {
             // if the man is in the same room, chase the man
             if (objectPos[30] == currentRoom) {
-                dragonDirections[4] = (objectPos[31] < manX) - (objectPos[31] > manX);
+                dragonDirections[4] = (objectPos[31] < manX - 4) - (objectPos[31] > manX - 4);
                 dragonDirections[5] = (objectPos[32] < manY - 4) - (objectPos[32] > manY - 4);
             // if the chalice is in the same room, chase the chalice
             } else if (objectPos[30] == objectPos[18]) {
@@ -317,13 +322,13 @@ int main(void) {
         }
         if (kb_Data[7] & kb_Down) {
             // if the player is inside of the magic bridge, then they can always move down (or up) no matter what walls may try to stop them
-            if ((playerHeldObject != 5 && objectPos[15] == currentRoom && manX > objectPos[16] + 16 && manX < objectPos[16] + 40 && manY < objectPos[17] + 39 && manY + 9 > objectPos[17]) || !((gfx_GetPixel(manX, manY + 11)  != 7 * inOrangeMaze) || (gfx_GetPixel(manX + 7, manY + 11)  != 7 * inOrangeMaze))) {
+            if ((playerHeldObject != 5 && objectPos[15] == currentRoom && manX > objectPos[16] + 16 && manX < objectPos[16] + 40 && manY < objectPos[17] + 40 && manY + 10 > objectPos[17]) || !((gfx_GetPixel(manX, manY + 11)  != 7 * inOrangeMaze) || (gfx_GetPixel(manX + 7, manY + 11)  != 7 * inOrangeMaze))) {
                 manY += 4;
                 objectPos[3 * playerHeldObject + 2] += 4;
             }
         }
         if (kb_Data[7] & kb_Up) {
-            if ((playerHeldObject != 5 && objectPos[15] == currentRoom && manX > objectPos[16] + 16 && manX < objectPos[16] + 40 && manY < objectPos[17] + 49 && manY - 1 > objectPos[17]) || !((gfx_GetPixel(manX, manY - 4) != 7 * inOrangeMaze) || (gfx_GetPixel(manX + 7, manY - 4)  != 7 * inOrangeMaze))) {
+            if ((playerHeldObject != 5 && objectPos[15] == currentRoom && manX > objectPos[16] + 16 && manX < objectPos[16] + 40 && manY < objectPos[17] + 50 && manY - 2 > objectPos[17]) || !((gfx_GetPixel(manX, manY - 4) != 7 * inOrangeMaze) || (gfx_GetPixel(manX + 7, manY - 4)  != 7 * inOrangeMaze))) {
                 manY -= 4;
                 objectPos[3 * playerHeldObject + 2] -= 4;
             }
@@ -355,7 +360,6 @@ int main(void) {
         // checks all the objects to see if the player should pick one up or if the object needs to perform a room transition
         for (int8_t i = 0; i < 11; i++) {
             uint8_t j = 3 * i;
-            const int8_t objectSize[] = {20, 10, 20, 10, 20, 10, 20, 20, 20, 14, 20, 52, 20, 22, 6, 6, 20, 44, 20, 44, 20, 44};
             if (!holdingCooldown && currentRoom == objectPos[j]) {
                 if (gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[j + 1] - 2, objectPos[j + 2] - 2, objectSize[2 * i], objectSize[2 * i + 1]) || (i == 5 && gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[16] + 46, objectPos[17] - 2, 20, 52))) {
                     if (i < 8) {
@@ -388,31 +392,32 @@ int main(void) {
                     if (dragonStates[i - 8] == 1) {
                         if (gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[j + 1], objectPos[j + 2] + 4, 8, 16)) {
                             manX = objectPos[j + 1] + 4;
-                            manY = objectPos[j + 2] + 24;
+                            manY = objectPos[j + 2] + 20;
                             dragonStates[i - 8] = 126;
                         } else {
                             dragonStates[i - 8] = 0;
                         }
                     }
+                }
                 // checks to see if the dragon got killed by the sword
-                } else if (objectPos[12] == objectPos[j] && gfx_CheckRectangleHotspot(objectPos[13], objectPos[14] + 4, 16, 2, objectPos[j + 1], objectPos[j + 2], 16, 40)) dragonStates[i - 8] = 127;
+                if (!dragonStates[i - 8] && objectPos[12] == objectPos[j] && gfx_CheckRectangleHotspot(objectPos[13] + 2, objectPos[14] + 4, 12, 2, objectPos[j + 1], objectPos[j + 2], 16, 40)) dragonStates[i - 8] = 127;
             }
             // does the room transitions for all the objects
-            if (objectPos[j + 1] + ((objectSize[2 * i] - 4) / 2) < 4) {
+            if (objectPos[j + 1] + (objectSize[2 * i] / 2 - 2) < 4) {
                 objectPos[j] = roomTransitions[4 *objectPos[j] + 2];
                 objectPos[j + 1] += 312;
             }
-            if (objectPos[j + 1] + ((objectSize[2 * i] - 4) / 2) > 316) {
+            if (objectPos[j + 1] + (objectSize[2 * i] / 2 - 2) > 316) {
                 objectPos[j] = roomTransitions[4 * objectPos[j]];
                 objectPos[j + 1] -= 312;
             }
-            if (objectPos[j + 2] + ((objectSize[2 * i + 1] - 4) / 2) < 28) {
+            if (objectPos[j + 2] + (objectSize[2 * i + 1] / 2 - 2) < 28) {
                 objectPos[j] = roomTransitions[4 * objectPos[j] + 1];
                 objectPos[j + 2] += 184; 
             }
-            if (objectPos[j + 2] + ((objectSize[2 * i + 1] - 4) / 2) > 212) {
-                // if the object goes through a castle gate, then do the transition as well
-                if (objectPos[j] == 4 || objectPos[j] == 12 || objectPos[j] == 20) {
+            if (objectPos[j + 2] + (objectSize[2 * i + 1] / 2 - 2) > 212) {
+                // if the object leaves a room into the castle, transport it to the castle gate
+                if ((objectPos[j] == 4 || objectPos[j] == 12 || objectPos[j] == 20) && castleGatePos[(currentRoom - 4) / 8] != 24) {
                     objectPos[j]++;
                     objectPos[j + 2] -= 60;
                 } else {
@@ -420,17 +425,20 @@ int main(void) {
                     objectPos[j + 2] -= 184;
                 }
             }
-            // if the object leaves a room into the castle, transport it to the castle gate
-            if ((objectPos[j] == 5 || objectPos[j] == 13 || objectPos[j] == 21) && objectPos[j + 2] + ((objectSize[2 * i + 1] - 4) / 2) < 148 && objectPos[j + 1] > 128 && objectPos[j + 1] < 192) {
-                objectPos[j]--;
-                objectPos[j + 2] += 60;
-            }
+        }
+        // if the object goes through a castle gate, then do the transition as well
+        if ((objectPos[3 * playerHeldObject] == 5 || objectPos[3 * playerHeldObject] == 13 || objectPos[3 * playerHeldObject] == 21) && objectPos[3 * playerHeldObject] == currentRoom + 1 && castleGatePos[(currentRoom - 4) / 8] != 24 && objectPos[3 * playerHeldObject + 2] > 60 && objectPos[3 * playerHeldObject + 2] + (objectSize[2 * playerHeldObject + 1] / 2 - 2) < 145) {
+            objectPos[3 * playerHeldObject + 2] += 60;
+            objectPos[3 * playerHeldObject]--;
         }
         // decrement the holding cooldown each frame
         if (holdingCooldown) holdingCooldown--;
-        // do all the objects' routines
-        key(currentRoom);
+        // make the magnet attract other objects
         magnet(currentRoom);
+        // draw the keys
+        if (currentRoom == objectPos[0]) gfx_ScaledTransparentSprite_NoClip(BlackKey, objectPos[1], objectPos[2], 2, 2);
+        if (currentRoom == objectPos[3]) gfx_ScaledTransparentSprite_NoClip(GoldKey, objectPos[4], objectPos[5], 2, 2);
+        if (currentRoom == objectPos[6]) gfx_ScaledTransparentSprite_NoClip(WhiteKey, objectPos[7], objectPos[8], 2, 2);
         // draw the sword and the bridge
         if (currentRoom == objectPos[12]) gfx_ScaledTransparentSprite_NoClip(Sword, objectPos[13], objectPos[14], 2, 2);
         if (currentRoom == objectPos[15]) gfx_ScaledTransparentSprite_NoClip(MagicBridge, objectPos[16], objectPos[17], 2, 2);
@@ -450,6 +458,8 @@ int main(void) {
         gfx_SetColor(2);
         gfx_FillRectangle_NoClip(0, 0, 320, 24);
         gfx_FillRectangle_NoClip(0, 216, 320, 24);
+        //gfx_SetTextXY(2, 2);
+        //gfx_PrintInt(, 1);
         gfx_SwapDraw();
         while (timer_Get(1) < 1092);
     }
@@ -517,19 +527,6 @@ void drawRoom(int8_t roomNumber, uint8_t roomColor) {
     // for those rooms that have a random black bar down the side, draw that black bar down the side
     if (roomNumber == 11 || roomNumber == 22) gfx_FillRectangle_NoClip(16, 24, 4, 192);
     if ((roomNumber == 15 && playerHeldObject != 7) || roomNumber == 28) gfx_FillRectangle_NoClip(300, 24, 4, 192);
-}
-
-void key(int8_t currentRoom) {
-    // for each of the keys...
-    for (int8_t i = 0; i < 3; i++) {
-        // if the key is in the same room as the player...
-        if (currentRoom == objectPos[3 * i]) {
-            // draw the key
-            if (i == 1) gfx_ScaledTransparentSprite_NoClip(GoldKey, objectPos[4], objectPos[5], 2, 2);
-            else if (i) gfx_ScaledTransparentSprite_NoClip(WhiteKey, objectPos[7], objectPos[8], 2, 2);
-            else gfx_ScaledTransparentSprite_NoClip(BlackKey, objectPos[1], objectPos[2], 2, 2);
-        }
-    }
 }
 
 void magnet(int8_t currentRoom) {
