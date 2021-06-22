@@ -8,7 +8,7 @@
 #include "font/font.h"
 #include "gfx/sprites.h"
 
-int8_t playerHeldObject = 11;
+int8_t playerHeldObject = 13;
 int16_t objectPos[] = {
     5, 56, 128, // 0: Black key
     13, 56, 128, // 1: Goldeny key
@@ -18,9 +18,10 @@ int16_t objectPos[] = {
     26, 128, 104, // 5: Magick bridge
     1, 96, 170, // 6: Chalice
     2, 160, 200, // 7: Grey dot
-    15, 160, 120, // 8: Grundle (the green dragon)
-    11, 110, 120, // 9: Yurgle (the yeller dragon)
-    1, 60, 120 // 10: Rhindle (the red dragon)
+    13, 64, 48, // 8: the bat (dun dun DUN)
+    15, 160, 120, // 9: Grundle (the green dragon)
+    11, 110, 120, // 10: Yurgle (the yeller dragon)
+    1, 60, 120 // 11: Rhindle (the red dragon)
 };
 
 void magnet(int8_t);
@@ -103,7 +104,7 @@ const int8_t roomTransitions[124] = {
     23, 28, 23, 27, // room 29
     30, 30, 30, 16 // room 30
 };
-const int8_t objectSize[] = {20, 10, 20, 10, 20, 10, 20, 20, 20, 14, 20, 52, 20, 22, 6, 6, 20, 40, 20, 40, 20, 40};
+const int8_t objectSize[] = {20, 10, 20, 10, 20, 10, 20, 20, 20, 14, 20, 52, 20, 22, 6, 6, 20, 18, 20, 40, 20, 40, 20, 40};
 
 int main(void) {
     // all that setup stuff
@@ -117,10 +118,10 @@ int main(void) {
     gfx_SetPalette(global_palette, sizeof_global_palette, 0);
     gfx_SetTransparentColor(0);
     // mm mm mm delicious variables
-    int8_t currentRoom = 13, castleGateOpener = 0, holdingCooldown = 0, castleGatePos[3] = {24, 24, 24}, dragonStates[3] = {0, 0, 0}, dragonDirections[6] = {0, 0, 0, 0, 0, 0};
+    int8_t currentRoom = 13, castleGateOpener = 0, holdingCooldown = 0, castleGatePos[3] = {24, 24, 24}, dragonStates[3] = {0, 0, 0}, dragonDirections[6] = {0, 0, 0, 0, 0, 0}, batDirection[2] = {0, 0}, batHeldObject = 12, batState;
     int16_t manX = 156;
-    uint8_t manY = 176, chaliceColor = 0;
-    bool inOrangeMaze, win = false, dead = false;
+    uint8_t manY = 176, chaliceColor = 1;
+    bool inOrangeMaze, win = false, dead = false, batAnimation;
     // display the epic title screen that was created by TIny_Hacker
     gfx_SetColor(0);
     gfx_FillRectangle_NoClip(0, 24, 320, 192);
@@ -134,7 +135,7 @@ int main(void) {
     gfx_SetDrawBuffer();
     gfx_FillScreen(2);
     // wait for a button to be pressed before moving on to the actual game
-    do { 
+    do {
         kb_Scan();
     } while (kb_AnyKey());
     while (!kb_AnyKey()) kb_Scan();
@@ -163,10 +164,10 @@ int main(void) {
             manX = 156;
             manY = 176;
             currentRoom = 13;
-            playerHeldObject = 12;
+            playerHeldObject = 13;
         }
         // lets go of the item being held if [2nd] is pressed
-        if (kb_Data[1] & kb_2nd) playerHeldObject = 12;
+        if (kb_Data[1] & kb_2nd) playerHeldObject = 13;
         // checks to see if the player is in a foggy orange maze
         if (currentRoom < 4 || (currentRoom > 23 && currentRoom < 27)) inOrangeMaze = true;
         else inOrangeMaze = false;
@@ -225,34 +226,34 @@ int main(void) {
                 dragonDirections[1] = randInt(-1, 1);
             }
             // if the player is in the same room, chase the player
-            if (objectPos[24] == currentRoom) {
-                dragonDirections[0] = (objectPos[25] < manX - 4) - (objectPos[25] > manX - 4);
-                dragonDirections[1] = (objectPos[26] < manY - 4) - (objectPos[26] > manY - 4);
+            if (objectPos[27] == currentRoom) {
+                dragonDirections[0] = (objectPos[28] < manX - 4) - (objectPos[28] > manX - 4);
+                dragonDirections[1] = (objectPos[29] < manY - 4) - (objectPos[29] > manY - 4);
             // if the chalice is in the same room, chase the chalice
-            } else if (objectPos[24] == objectPos[18]) {
-                dragonDirections[0] = (objectPos[25] < objectPos[19]) - (objectPos[25] > objectPos[19]);
-                dragonDirections[1] = (objectPos[26] < objectPos[20]) - (objectPos[26] > objectPos[20]);
+            } else if (objectPos[27] == objectPos[18]) {
+                dragonDirections[0] = (objectPos[28] < objectPos[19]) - (objectPos[28] > objectPos[19]);
+                dragonDirections[1] = (objectPos[29] < objectPos[20]) - (objectPos[29] > objectPos[20]);
             // if the magic bridge is in the same room, chase the magic bridge
-            } else if (objectPos[24] == objectPos[15]) {
-                dragonDirections[0] = (objectPos[25] < objectPos[16]) - (objectPos[25] > objectPos[16]);
-                dragonDirections[1] = (objectPos[26] < objectPos[17]) - (objectPos[26] > objectPos[17]);
+            } else if (objectPos[27] == objectPos[15]) {
+                dragonDirections[0] = (objectPos[28] < objectPos[16]) - (objectPos[28] > objectPos[16]);
+                dragonDirections[1] = (objectPos[29] < objectPos[17]) - (objectPos[29] > objectPos[17]);
             // if the magnet is in the same room, chase the magnet
-            } else if (objectPos[24] == objectPos[9]) {
-                dragonDirections[0] = (objectPos[25] < objectPos[10]) - (objectPos[25] > objectPos[10]);
-                dragonDirections[1] = (objectPos[26] < objectPos[11]) - (objectPos[26] > objectPos[11]);
+            } else if (objectPos[27] == objectPos[9]) {
+                dragonDirections[0] = (objectPos[28] < objectPos[10]) - (objectPos[28] > objectPos[10]);
+                dragonDirections[1] = (objectPos[29] < objectPos[11]) - (objectPos[29] > objectPos[11]);
             // if the black key is in the same room, chase the black key
-            } else if (objectPos[24] == objectPos[0]) {
-                dragonDirections[0] = (objectPos[25] < objectPos[1]) - (objectPos[25] > objectPos[1]);
-                dragonDirections[1] = (objectPos[26] < objectPos[2]) - (objectPos[26] > objectPos[2]);
+            } else if (objectPos[27] == objectPos[0]) {
+                dragonDirections[0] = (objectPos[28] < objectPos[1]) - (objectPos[28] > objectPos[1]);
+                dragonDirections[1] = (objectPos[29] < objectPos[2]) - (objectPos[29] > objectPos[2]);
             }
-            objectPos[25] += 2 * dragonDirections[0];
-            objectPos[26] += 2 * dragonDirections[1];
+            objectPos[28] += 2 * dragonDirections[0];
+            objectPos[29] += 2 * dragonDirections[1];
         }
         // draw the proper sprite depending on what state the dragon is in
-        if (objectPos[24] == currentRoom) {
-            if (!dragonStates[0] || dragonStates[0] == 126) gfx_ScaledTransparentSprite_NoClip(GrindleChase, objectPos[25], objectPos[26], 2, 2);
-            else if (dragonStates[0] == 127) gfx_ScaledTransparentSprite_NoClip(GrindleDead, objectPos[25], objectPos[26], 2, 2);
-            else gfx_ScaledTransparentSprite_NoClip(GrindleEat, objectPos[25], objectPos[26], 2, 2);
+        if (objectPos[27] == currentRoom) {
+            if (!dragonStates[0] || dragonStates[0] == 126) gfx_ScaledTransparentSprite_NoClip(GrindleChase, objectPos[28], objectPos[29], 2, 2);
+            else if (dragonStates[0] == 127) gfx_ScaledTransparentSprite_NoClip(GrindleDead, objectPos[28], objectPos[29], 2, 2);
+            else gfx_ScaledTransparentSprite_NoClip(GrindleEat, objectPos[28], objectPos[29], 2, 2);
         }
         // the yellow dragon's behavior now!
         if (!dragonStates[1]) {
@@ -261,48 +262,48 @@ int main(void) {
                 dragonDirections[3] = randInt(-1, 1);
             }
             // if the yellow key is in the same room, then run away from the yellow key (like a coward)
-            if (objectPos[27] == objectPos[3]) {
-                dragonDirections[2] = (objectPos[28] > objectPos[4]) - (objectPos[28] < objectPos[4]);
-                dragonDirections[3] = (objectPos[29] > objectPos[5]) - (objectPos[29] < objectPos[5]);
+            if (objectPos[30] == objectPos[3]) {
+                dragonDirections[2] = (objectPos[31] > objectPos[4]) - (objectPos[31] < objectPos[4]);
+                dragonDirections[3] = (objectPos[32] > objectPos[5]) - (objectPos[32] < objectPos[5]);
             // if the man is in the same room, chase the man
-            } else if (objectPos[27] == currentRoom) {
-                dragonDirections[2] = (objectPos[28] < manX - 4) - (objectPos[28] > manX - 4);
-                dragonDirections[3] = (objectPos[29] < manY - 4) - (objectPos[29] > manY - 4);
+            } else if (objectPos[30] == currentRoom) {
+                dragonDirections[2] = (objectPos[31] < manX - 4) - (objectPos[31] > manX - 4);
+                dragonDirections[3] = (objectPos[32] < manY - 4) - (objectPos[31] > manY - 4);
             // if the chalice is in the same room, chase the chalice
-            } else if (objectPos[27] == objectPos[18]) {
-                dragonDirections[2] = (objectPos[28] < objectPos[19]) - (objectPos[28] > objectPos[19]);
-                dragonDirections[3] = (objectPos[29] < objectPos[20]) - (objectPos[29] > objectPos[20]);
+            } else if (objectPos[30] == objectPos[18]) {
+                dragonDirections[2] = (objectPos[31] < objectPos[19]) - (objectPos[31] > objectPos[19]);
+                dragonDirections[3] = (objectPos[32] < objectPos[20]) - (objectPos[32] > objectPos[20]);
             }
-            objectPos[28] += 2 * dragonDirections[2];
-            objectPos[29] += 2 * dragonDirections[3];
+            objectPos[31] += 2 * dragonDirections[2];
+            objectPos[32] += 2 * dragonDirections[3];
         }
-        if (objectPos[27] == currentRoom) {
-            if (!dragonStates[1] || dragonStates[1] == 126) gfx_ScaledTransparentSprite_NoClip(YurgleChase, objectPos[28], objectPos[29], 2, 2);
-            else if (dragonStates[1] == 127) gfx_ScaledTransparentSprite_NoClip(YurgleDead, objectPos[28], objectPos[29], 2, 2);
-            else gfx_ScaledTransparentSprite_NoClip(YurgleEat, objectPos[28], objectPos[29], 2, 2);
+        if (objectPos[30] == currentRoom) {
+            if (!dragonStates[1] || dragonStates[1] == 126) gfx_ScaledTransparentSprite_NoClip(YurgleChase, objectPos[31], objectPos[32], 2, 2);
+            else if (dragonStates[1] == 127) gfx_ScaledTransparentSprite_NoClip(YurgleDead, objectPos[31], objectPos[32], 2, 2);
+            else gfx_ScaledTransparentSprite_NoClip(YurgleEat, objectPos[31], objectPos[32], 2, 2);
         }
         // the red dragon's behavior now!
         if (!dragonStates[2]) {
             // if the man is in the same room, chase the man
-            if (objectPos[30] == currentRoom) {
-                dragonDirections[4] = (objectPos[31] < manX - 4) - (objectPos[31] > manX - 4);
-                dragonDirections[5] = (objectPos[32] < manY - 4) - (objectPos[32] > manY - 4);
+            if (objectPos[33] == currentRoom) {
+                dragonDirections[4] = (objectPos[34] < manX - 4) - (objectPos[34] > manX - 4);
+                dragonDirections[5] = (objectPos[35] < manY - 4) - (objectPos[35] > manY - 4);
             // if the chalice is in the same room, chase the chalice
-            } else if (objectPos[30] == objectPos[18]) {
-                dragonDirections[4] = (objectPos[31] < objectPos[19]) - (objectPos[31] > objectPos[19]);
-                dragonDirections[5] = (objectPos[32] < objectPos[20]) - (objectPos[32] > objectPos[20]);
+            } else if (objectPos[33] == objectPos[18]) {
+                dragonDirections[4] = (objectPos[34] < objectPos[19]) - (objectPos[34] > objectPos[19]);
+                dragonDirections[5] = (objectPos[35] < objectPos[20]) - (objectPos[35] > objectPos[20]);
             // if the white key is in the same room, chase the white key
-            } else if (objectPos[30] == objectPos[6]) {
-                dragonDirections[4] = (objectPos[31] < objectPos[7]) - (objectPos[31] > objectPos[7]);
-                dragonDirections[5] = (objectPos[32] < objectPos[8]) - (objectPos[32] > objectPos[8]);
+            } else if (objectPos[33] == objectPos[6]) {
+                dragonDirections[4] = (objectPos[34] < objectPos[7]) - (objectPos[34] > objectPos[7]);
+                dragonDirections[5] = (objectPos[35] < objectPos[8]) - (objectPos[35] > objectPos[8]);
             }
-            objectPos[31] += 3 * dragonDirections[4];
-            objectPos[32] += 3 * dragonDirections[5];
+            objectPos[34] += 3 * dragonDirections[4];
+            objectPos[35] += 3 * dragonDirections[5];
         }
-        if (objectPos[30] == currentRoom) {
-            if (!dragonStates[2] || dragonStates[2] == 126) gfx_ScaledTransparentSprite_NoClip(RhindleChase, objectPos[31], objectPos[32], 2, 2);
-            else if (dragonStates[2] == 127) gfx_ScaledTransparentSprite_NoClip(RhindleDead, objectPos[31], objectPos[32], 2, 2);
-            else gfx_ScaledTransparentSprite_NoClip(RhindleEat, objectPos[31], objectPos[32], 2, 2);
+        if (objectPos[33] == currentRoom) {
+            if (!dragonStates[2] || dragonStates[2] == 126) gfx_ScaledTransparentSprite_NoClip(RhindleChase, objectPos[34], objectPos[35], 2, 2);
+            else if (dragonStates[2] == 127) gfx_ScaledTransparentSprite_NoClip(RhindleDead, objectPos[34], objectPos[35], 2, 2);
+            else gfx_ScaledTransparentSprite_NoClip(RhindleEat, objectPos[34], objectPos[35], 2, 2);
         }
         // check for collisions then move the man and the item being held
         if (kb_Data[7] & kb_Right) {
@@ -358,11 +359,11 @@ int main(void) {
             */
         }
         // checks all the objects to see if the player should pick one up or if the object needs to perform a room transition
-        for (int8_t i = 0; i < 11; i++) {
+        for (int8_t i = 0; i < 12; i++) {
             uint8_t j = 3 * i;
             if (!holdingCooldown && currentRoom == objectPos[j]) {
                 if (gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[j + 1] - 2, objectPos[j + 2] - 2, objectSize[2 * i], objectSize[2 * i + 1]) || (i == 5 && gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[16] + 46, objectPos[17] - 2, 20, 52))) {
-                    if (i < 8) {
+                    if (i < 9) {
                         // if the man picked up a different item...
                         if (playerHeldObject != i) {
                             // the holding cooldown is set to 8 frames
@@ -376,9 +377,9 @@ int main(void) {
                         if (kb_Data[7] & kb_Up) objectPos[j + 2] -= 4;
                         if (kb_Data[7] & kb_Down) objectPos[j + 2] += 4;
                         // otherwise, if the object is a dragon, then
-                    } else if (!dragonStates[i - 8] && dragonStates[i - 8] < 126) {
+                    } else if (!dragonStates[i - 9] && dragonStates[i - 9] < 126) {
                         // set it to bite for X amount of frames
-                        dragonStates[i - 8] = 30;
+                        dragonStates[i - 9] = 30;
                         // move the dragon to be biting the player
                         objectPos[j + 1] = manX - 2;
                         objectPos[j + 2] = manY - 6;
@@ -386,21 +387,21 @@ int main(void) {
                 }
             }
             // checks to see if the player is bitten by the dragons
-            if (i > 7) {
-                if (dragonStates[i - 8] && dragonStates[i - 8] < 126) {
-                    dragonStates[i - 8]--;
-                    if (dragonStates[i - 8] == 1) {
+            if (i > 8) {
+                if (dragonStates[i - 9] && dragonStates[i - 9] < 126) {
+                    dragonStates[i - 9]--;
+                    if (dragonStates[i - 9] == 1) {
                         if (gfx_CheckRectangleHotspot(manX, manY, 8, 8, objectPos[j + 1], objectPos[j + 2] + 4, 8, 16)) {
                             manX = objectPos[j + 1] + 4;
                             manY = objectPos[j + 2] + 20;
-                            dragonStates[i - 8] = 126;
+                            dragonStates[i - 9] = 126;
                         } else {
-                            dragonStates[i - 8] = 0;
+                            dragonStates[i - 9] = 0;
                         }
                     }
                 }
                 // checks to see if the dragon got killed by the sword
-                if (!dragonStates[i - 8] && objectPos[12] == objectPos[j] && gfx_CheckRectangleHotspot(objectPos[13] + 2, objectPos[14] + 4, 12, 2, objectPos[j + 1], objectPos[j + 2], 16, 40)) dragonStates[i - 8] = 127;
+                if (!dragonStates[i - 9] && objectPos[12] == objectPos[j] && gfx_CheckRectangleHotspot(objectPos[13] + 2, objectPos[14] + 4, 12, 2, objectPos[j + 1], objectPos[j + 2], 16, 40)) dragonStates[i - 9] = 127;
             }
             // does the room transitions for all the objects
             if (objectPos[j + 1] + (objectSize[2 * i] / 2 - 2) < 4) {
@@ -413,7 +414,7 @@ int main(void) {
             }
             if (objectPos[j + 2] + (objectSize[2 * i + 1] / 2 - 2) < 28) {
                 objectPos[j] = roomTransitions[4 * objectPos[j] + 1];
-                objectPos[j + 2] += 184; 
+                objectPos[j + 2] += 184;
             }
             if (objectPos[j + 2] + (objectSize[2 * i + 1] / 2 - 2) > 212) {
                 // if the object leaves a room into the castle, transport it to the castle gate
@@ -430,6 +431,14 @@ int main(void) {
         if ((objectPos[3 * playerHeldObject] == 5 || objectPos[3 * playerHeldObject] == 13 || objectPos[3 * playerHeldObject] == 21) && objectPos[3 * playerHeldObject] == currentRoom + 1 && castleGatePos[(currentRoom - 4) / 8] != 24 && objectPos[3 * playerHeldObject + 2] > 60 && objectPos[3 * playerHeldObject + 2] + (objectSize[2 * playerHeldObject + 1] / 2 - 2) < 145) {
             objectPos[3 * playerHeldObject + 2] += 60;
             objectPos[3 * playerHeldObject]--;
+        }
+        // time for the bat!
+        if (objectPos[24] == currentRoom) {
+            // draws the different animations of the bat
+            if (batAnimation) gfx_ScaledTransparentSprite_NoClip(Knubberrub1, objectPos[25], objectPos[26], 2, 2);
+            else gfx_ScaledTransparentSprite_NoClip(Knubberrub2, objectPos[25], objectPos[26], 2, 2);
+            // changes the bat's animation every 4 frames
+            if (!(chaliceColor % 8)) batAnimation = !batAnimation;
         }
         // decrement the holding cooldown each frame
         if (holdingCooldown) holdingCooldown--;
