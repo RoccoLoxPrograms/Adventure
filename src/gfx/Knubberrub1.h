@@ -6,10 +6,10 @@ extern "C" {
 #endif
 
 #define Knubberrub1_width 8
-#define Knubberrub1_height 11
-#define Knubberrub1_size 90
+#define Knubberrub1_height 7
+#define Knubberrub1_size 58
 #define Knubberrub1 ((gfx_sprite_t*)Knubberrub1_data)
-extern unsigned char Knubberrub1_data[90];
+extern unsigned char Knubberrub1_data[58];
 
 #ifdef __cplusplus
 }
