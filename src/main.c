@@ -8,7 +8,7 @@
 #include "font/font.h"
 #include "gfx/sprites.h"
 
-int8_t playerHeldObject = 13;
+int8_t playerHeldObject;
 // DON'T CHANGE ANYTHING WITH THIS STUPID WIERDNESS VARIABLE CAUSES HUGE ISSUES HOURS FIXING SADNESS PLEASE KEEP BE NICE
 int16_t objectPos[36];
 
@@ -78,7 +78,7 @@ int main(void) {
     int8_t difficulty = 0, currentRoom = 13, castleGateOpener = 0, holdingCooldown = 0, castleGatePos[3] = {24, 24, 24}, dragonStates[3] = {0, 0, 0}, dragonDirections[6] = {0, 0, 0, 0, 0, 0}, batDirection[2] = {1, 1}, batHeldObject;
     int16_t manX = 156;
     uint8_t manY = 176, chaliceColor = 1;
-    bool inOrangeMaze, win = false, dead = false, batAnimation, batHungry = true;
+    bool inOrangeMaze, win = false, dead = false, batAnimation, batHungry = true, dragonMovementVariation;
     // these are not delicious variables due to them being constants
     const uint8_t roomColor[31] = {0, 0, 0, 0, 8, 2, 10, 10, 10, 10, 10, 5, 6, 6, 4, 3, 9, 8, 8, 8, 8, 1, 12, 13, 0, 0, 0, 9, 11, 8, 9};
     const int8_t roomTransitions[124] = {
@@ -129,6 +129,8 @@ int main(void) {
     gfx_SetDrawBuffer();
     gfx_FillScreen(2);
     while (!(kb_Data[1] & kb_Del)) {
+        playerHeldObject = 13;
+        batHungry = true;
         batHeldObject = 13;
         castleGateOpener = 0;
         castleGatePos[0] = 24;
@@ -280,12 +282,14 @@ int main(void) {
                         }
                     // If the man gets eaten, they and their item are teleported to the dragon's stomach
                     } else if (dragonStates[i - 9] == 126) {
-                        objectPos[3 * playerHeldObject + 1] += objectPos[j + 1] + 4 - manX;
-                        objectPos[3 * playerHeldObject + 2] += objectPos[j + 2] + 20 - manY;
+                        // only teleport the item if it is not the bat because if the player is holding the bat and the bat is holding the dragon and the dragon has eaten the player, weird issues come up
+                        if (playerHeldObject != 8) {
+                            objectPos[3 * playerHeldObject + 1] += objectPos[j + 1] + 4 - manX;
+                            objectPos[3 * playerHeldObject + 2] += objectPos[j + 2] + 20 - manY;
+                        }
                         manX = objectPos[j + 1] + 4;
                         manY = objectPos[j + 2] + 20;
                         currentRoom = objectPos[j];
-                        objectPos[3 * playerHeldObject] = currentRoom;
                     }
                     // checks to see if the dragon got killed by the sword
                     if (!dragonStates[i - 9] && objectPos[12] == objectPos[j] && gfx_CheckRectangleHotspot(objectPos[13] + 2, objectPos[14] + 4, 12, 2, objectPos[j + 1], objectPos[j + 2], 16, 40)) dragonStates[i - 9] = 127;
@@ -379,12 +383,13 @@ int main(void) {
                 }
             }
             objectPos[3 * playerHeldObject] = currentRoom;
+            dragonMovementVariation = !(chaliceColor % 3);
             // these if statments dictate what the green dragon will gravitate towards, such as the player or the black key or the magic bridge or the magnet
             if (!dragonStates[0]) {            
                 // if the player is in the same room, chase the player
                 if (objectPos[27] == currentRoom) {
-                    dragonDirections[0] = (objectPos[28] < manX - 4) - (objectPos[28] > manX - 4);
-                    dragonDirections[1] = (objectPos[29] < manY - 4) - (objectPos[29] > manY - 4);
+                    dragonDirections[0] = (objectPos[28] < manX - 6) - (objectPos[28] > manX - 2);
+                    dragonDirections[1] = (objectPos[29] < manY - 6) - (objectPos[29] > manY - 2);
                 // if the chalice is in the same room, chase the chalice
                 } else if (objectPos[27] == objectPos[18]) {
                     dragonDirections[0] = (objectPos[28] < objectPos[19]) - (objectPos[28] > objectPos[19]);
@@ -408,8 +413,8 @@ int main(void) {
                         dragonDirections[1] = randInt(-1, 1);
                     } while (!(dragonDirections[0] || dragonDirections[1]));
                 }
-                objectPos[28] += 3 * dragonDirections[0];
-                objectPos[29] += 3 * dragonDirections[1];
+                objectPos[28] += (3 - dragonMovementVariation) * dragonDirections[0];
+                objectPos[29] += (3 - dragonMovementVariation) * dragonDirections[1];
             }
             // the yellow dragon's behavior now!
             if (!dragonStates[1]) {
@@ -419,8 +424,8 @@ int main(void) {
                     dragonDirections[3] = (objectPos[32] > objectPos[5]) - (objectPos[32] < objectPos[5]);
                 // if the man is in the same room, it chases the man
                 } else if (objectPos[30] == currentRoom) {
-                    dragonDirections[2] = (objectPos[31] < manX - 4) - (objectPos[31] > manX - 4);
-                    dragonDirections[3] = (objectPos[32] < manY - 4) - (objectPos[32] > manY - 4);
+                    dragonDirections[2] = (objectPos[31] < manX - 6) - (objectPos[31] > manX - 2);
+                    dragonDirections[3] = (objectPos[32] < manY - 6) - (objectPos[32] > manY - 2);
                 // if the chalice is in the same room, it chases the chalice
                 } else if (objectPos[30] == objectPos[18]) {
                     dragonDirections[2] = (objectPos[31] < objectPos[19]) - (objectPos[31] > objectPos[19]);
@@ -431,15 +436,15 @@ int main(void) {
                         dragonDirections[3] = randInt(-1, 1);
                     } while (!(dragonDirections[2] || dragonDirections[3]));
                 }
-                objectPos[31] += 2 * dragonDirections[2];
-                objectPos[32] += 2 * dragonDirections[3];
+                objectPos[31] += (3 - dragonMovementVariation) * dragonDirections[2];
+                objectPos[32] += (3 - dragonMovementVariation) * dragonDirections[3];
             }
             // the red dragon's behavior now!
             if (!dragonStates[2]) {
                 // if the man is in the same room, chase the man
                 if (objectPos[33] == currentRoom) {
-                    dragonDirections[4] = (objectPos[34] < manX - 4) - (objectPos[34] > manX - 4);
-                    dragonDirections[5] = (objectPos[35] < manY - 4) - (objectPos[35] > manY - 4);
+                    dragonDirections[4] = (objectPos[34] < manX - 6) - (objectPos[34] > manX - 2);
+                    dragonDirections[5] = (objectPos[35] < manY - 6) - (objectPos[35] > manY - 2);
                 // if the chalice is in the same room, chase the chalice
                 } else if (objectPos[33] == objectPos[18]) {
                     dragonDirections[4] = (objectPos[34] < objectPos[19]) - (objectPos[34] > objectPos[19]);
@@ -455,8 +460,8 @@ int main(void) {
                     } while (!(dragonDirections[4] || dragonDirections[5]));
                 }
                 // My good old friend, the not not operator!!
-                objectPos[34] += 3 * dragonDirections[4] * !!difficulty;
-                objectPos[35] += 3 * dragonDirections[5] * !!difficulty;
+                objectPos[34] += 4 * dragonDirections[4] * !!difficulty;
+                objectPos[35] += 4 * dragonDirections[5] * !!difficulty;
             }
             // the bat behavior
             if (batHungry) {
@@ -544,6 +549,7 @@ int main(void) {
                 fontlib_SetCursorPosition(155, 113);
                 fontlib_DrawGlyph(numbers[difficulty]);
             }
+            // make the fog for the foggy orange mazes
             if (inOrangeMaze) {
                 gfx_GetSprite(FogBackground, (manX - 28) * (manX > 28 && manX < 284) + 256 * (manX >= 284), (manY - 52) * (manY > 52 && manY < 180) + 128 * (manY >= 180) + 24);
                 gfx_ZeroScreen();
